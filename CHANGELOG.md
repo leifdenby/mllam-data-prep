@@ -5,7 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## vX.X.X
+## Unreleased
+
+[All changes](https://github.com/mllam/mllam-data-prep/compare/v0.4.0...HEAD)
+
+### Added
+
+- Add optional section called `extra` to config file to allow for user-defined extra information that is ignored by `mllam-data-prep` but can be used by downstream applications. ![\#18](https://github.com/mllam/mllam-data-prep/pull/18), @leifdenby
+
+### Changed
+
+- Schema version bumped to `v0.5.0` to match next expected release that will support optional `extra` section in config [\#18](https://github.com/mllam/mllam-data-prep/pull/18)
+
+
+## [v0.4.0](https://github.com/mllam/mllam-data-prep/releases/tag/v0.4.0)
+
+[All changes](https://github.com/mllam/mllam-data-prep/compare/v0.3.0...v0.4.0)
+
+This release adds support for defining the output path in the command line
+interface and addresses bugs around optional dependencies for
+`dask.distributed`.
 
 ### Added
 
@@ -13,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- remove f-string from `name_format` in config examples [\#35](https://github.com/mllam/mllam-data-prep/pull/35)
 - fix bug by making dependency `distributed` optional ![\#27](https://github.com/mllam/mllam-data-prep/pull/27)
 - change config example to call validation split `val` instead of `validation` [\#28](https://github.com/mllam/mllam-data-prep/pull/28)
 - fix typo in install dependency `distributed` ![\#20](https://github.com/mllam/mllam-data-prep/pull/20)
