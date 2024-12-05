@@ -128,6 +128,7 @@ class DiurnalDiffStdOperator(StatisticOperator):
     """Calculate the std of the diurnal differences along the specified dimensions."""
 
     def calc_stats(self, dims):
+        # 1. select variables to keep
         vars_to_keep = [
             v for v in self.ds.data_vars if self.splitting_dim in self.ds[v].dims
         ]
@@ -136,3 +137,53 @@ class DiurnalDiffStdOperator(StatisticOperator):
         # Group by hour and calculate mean
         grouped = ds_diff.groupby("time.hour")
         return grouped.std(dim=dims)
+
+
+def compute_pipeline_statistic(da, stats_op, stats_dim=None, n_diff_steps=1, diff_dim=None, groupby=None):
+    """
+    Apply a series of oprations to compute a specific compound statistic
+    
+    THe operations applied in order are:
+    1. Apply diff along a dimension, if diff_dim is not None (default to 1 step diff)
+    2. Optionally apply grouping if groupby is specified
+    3. Apply the stats_op to the dataarray
+    
+    Parameters
+    ----------
+    da : xr.DataArray
+        DataArray to compute the statistic on
+    n_diff_steps : int, optional
+        Number of diff steps to apply, by default None
+    diff_dim : str, optional
+        Dimension to diff over, by default None
+    groupby : str, optional
+        Dimension to groupby, by default None
+    stats_op : str, optional
+        Statistic operation to apply, by default None
+    """
+    # Build up CF compliant cell-method attribute so that people know what
+    # operations were applied
+    cell_methods = ""
+    if n_diff_steps:
+        # need to drop variables here
+        da = da.diff(dim=diff_dim, n=n_diff_steps)
+    if groupby:
+        da = da.groupby(groupby)
+    if stats_op:
+        if isinstance(stats_op, str):
+            da = getattr(da, stats_op)(dim=stats_dim)
+        else:
+            # TODO: implement callable here
+            raise NotImplementedError(f"stats_op of type {type(stats_op)} not supported")
+        
+    da.attrs["cell_methods"] = cell_methods
+    return da
+
+def diff_std(da):
+    return compute_pipeline_statistic(da, stats_op="std", diff_dim="time")
+
+def diurnal_diff_std(da):
+    return compute_pipeline_statistic(da, groupby="time.hour", stats_op="std", diff_dim="time", n_diff_steps=1)
+
+def diurnal_diff_std_per_gridpoint(da):
+    return compute_pipeline_statistic(da, stats_dim="time", groupby="time.hour", stats_op="std", diff_dim="time", n_diff_steps=1)
