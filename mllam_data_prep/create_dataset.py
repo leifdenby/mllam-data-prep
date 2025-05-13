@@ -114,7 +114,7 @@ def _merge_dataarrays_by_target(dataarrays_by_target):
     return ds
 
 
-def create_dataset(config: Config):
+def create_dataset(config: Config, ds_stats: Optional[xr.Dataset] = None):
     """
     Create a dataset from the input datasets specified in the config file.
 
@@ -122,6 +122,11 @@ def create_dataset(config: Config):
     ----------
     config : Config
         The configuration object defining the input datasets and how to map them to the output dataset.
+    ds_stats : xr.Dataset, optional
+        The dataset with statistics to use for the dataset. If not provided, the
+        statistics will be calculated from the input datasets. This is useful
+        for when creating a dataset for inference, where the statistics are
+        already known from the training dataset.
 
     Returns
     -------
@@ -268,15 +273,17 @@ def create_dataset(config: Config):
                 ds_split = ds.sel(
                     {splitting.dim: slice(split_config.start, split_config.end)}
                 )
-                logger.info(f"Computing statistics for split {split_name}")
-                split_stats = calc_stats(
-                    ds=ds_split,
-                    statistics_config=split_config.compute_statistics,
-                    splitting_dim=splitting.dim,
-                )
-                for op, op_dataarrays in split_stats.items():
-                    for var_name, da in op_dataarrays.items():
-                        ds[f"{var_name}__{split_name}__{op}"] = da
+
+                if ds_stats is not None:
+                    logger.info(f"Computing statistics for split {split_name}")
+                    split_stats = calc_stats(
+                        ds=ds_split,
+                        statistics_config=split_config.compute_statistics,
+                        splitting_dim=splitting.dim,
+                    )
+                    for op, op_dataarrays in split_stats.items():
+                        for var_name, da in op_dataarrays.items():
+                            ds[f"{var_name}__{split_name}__{op}"] = da
 
         # add a new variable which contains the start, stop for each split, the coords would then be the split names
         # and the data would be the start, stop values
@@ -287,6 +294,32 @@ def create_dataset(config: Config):
             coords={"split_name": list(splits.keys()), "split_part": ["start", "end"]},
         )
         ds["splits"] = da_splits
+
+    if ds_stats is not None:
+        logger.info("Adding pre-computed statistics to dataset")
+        try:
+            ds = xr.merge([ds, ds_stats], join="exact")
+        except xr.structure.alignment.AlignmentError as ex:
+            # find coordinates that are not aligned, as in find dimensions that are in both
+            # datasets but have different coordinate values
+            dim_overlaps = set(ds.dims) & set(ds_stats.dims)
+            coord_values = {
+                k: dict(
+                    dataset=ds[k].values.tolist(), stats=ds_stats[k].values.tolist()
+                )
+                for k in dim_overlaps
+            }
+            coord_values_different = {
+                coord: values_dict
+                for coord, values_dict in coord_values.items()
+                if not np.array_equal(values_dict["dataset"], values_dict["stats"])
+            }
+
+            logger.error(
+                f"The transformed dataset and provided statistics dataset cannot be merged because they have different "
+                f"values for some of the coordinates: {coord_values_different}"
+            )
+            raise ex
 
     ds.attrs = {}
     ds.attrs["schema_version"] = config.schema_version
@@ -302,7 +335,10 @@ def create_dataset(config: Config):
 
 
 def create_dataset_zarr(
-    fp_config: Path, fp_zarr: Optional[str | Path] = None, overwrite: str = "always"
+    fp_config: Path,
+    fp_zarr: Optional[str | Path] = None,
+    overwrite: str = "always",
+    use_stats_from_path: Optional[str | Path] = None,
 ):
     """
     Create a dataset from the input datasets specified in the config file and
@@ -322,6 +358,9 @@ def create_dataset_zarr(
         - "always": Always delete the existing dataset (default)
         - "never": Never delete the existing dataset
         - "on_config_change": Only delete the existing dataset if the configuration has changed
+    use_stats_from_path : Path, optional
+        Path to zarr dataset with stats to use in the new dataset. Using the option will cause
+        skipping of statistics calculations and instead the stats from the provided path will be used.
     """
     config = Config.from_yaml_file(file=fp_config)
 
@@ -389,7 +428,12 @@ def create_dataset_zarr(
                 f"Unsupported overwrite option {overwrite}. Options are 'always', 'never', or 'on_config_change'"
             )
 
-    ds = create_dataset(config=config)
+    if use_stats_from_path is not None:
+        ds_stats = xr.open_zarr(use_stats_from_path)
+    else:
+        ds_stats = None
+
+    ds = create_dataset(config=config, ds_stats=ds_stats)
 
     logger.info("Writing dataset to zarr")
 
