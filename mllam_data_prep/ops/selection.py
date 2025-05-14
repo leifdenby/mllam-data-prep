@@ -85,6 +85,10 @@ def select_by_kwargs(ds, **coord_ranges):
 
         elif isinstance(selection, list):
             ds = ds.sel({coord: selection})
+        elif isinstance(selection, str) or pd.Timestamp(selection):
+            # if the selection is a string, we assume it is a single value
+            # and select it
+            ds = ds.sel({coord: selection})
         else:
             raise NotImplementedError(
                 f"Selection for coordinate {coord} must be a list or a dict"

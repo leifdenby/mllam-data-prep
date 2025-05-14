@@ -16,7 +16,7 @@ except (ImportError, ModuleNotFoundError):
     DASK_DISTRIBUTED_AVAILABLE = False
 
 
-def create_argparser():
+def call(args=None):
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
@@ -45,19 +45,6 @@ def create_argparser():
         choices=["always", "never", "on_config_change"],
         default="always",
     )
-    parser.add_argument(
-        "--use-stats-from-path",
-        help="Path to zarr dataset with stats to use in the new dataset. Using the option will cause "
-        "mllam-data-prep to skip calculating stats and instead use the stats from the provided path.",
-        type=Path,
-        default=None,
-    )
-
-    return parser
-
-
-def call(args=None):
-    parser = create_argparser()
 
     args = parser.parse_args(args)
 
