@@ -123,10 +123,9 @@ def create_dataset(config: Config, ds_stats: Optional[xr.Dataset] = None):
     config : Config
         The configuration object defining the input datasets and how to map them to the output dataset.
     ds_stats : xr.Dataset, optional
-        The dataset with statistics to use for the dataset. If not provided, the
-        statistics will be calculated from the input datasets. This is useful
-        for when creating a dataset for inference, where the statistics are
-        already known from the training dataset.
+        Instead of computing statistics use the provided dataset for the
+        statistics. This is useful for when creating a dataset for inference,
+        where the statistics are already known from the training dataset.
 
     Returns
     -------
@@ -274,7 +273,7 @@ def create_dataset(config: Config, ds_stats: Optional[xr.Dataset] = None):
                     {splitting.dim: slice(split_config.start, split_config.end)}
                 )
 
-                if ds_stats is not None:
+                if ds_stats is None:
                     logger.info(f"Computing statistics for split {split_name}")
                     split_stats = calc_stats(
                         ds=ds_split,

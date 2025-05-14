@@ -45,7 +45,6 @@ def call(args=None):
         choices=["always", "never", "on_config_change"],
         default="always",
     )
-
     args = parser.parse_args(args)
 
     if args.show_progress:
