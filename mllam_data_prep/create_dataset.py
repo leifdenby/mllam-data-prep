@@ -2,7 +2,7 @@ import datetime
 import shutil
 from collections import defaultdict
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 import numpy as np
 import xarray as xr
@@ -335,7 +335,7 @@ def create_dataset(config: Config, ds_stats: Optional[xr.Dataset] = None):
 
 def create_dataset_zarr(
     fp_config: Path,
-    fp_zarr: Optional[str | Path] = None,
+    fp_zarr: Optional[Union[str, Path]] = None,
     overwrite: str = "always",
     use_stats_from_path: Optional[str | Path] = None,
 ):
