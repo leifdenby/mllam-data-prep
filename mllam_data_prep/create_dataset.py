@@ -39,6 +39,9 @@ else:
 # support v0.2.0, v0.5.0, and v0.6.0
 SUPPORTED_CONFIG_VERSIONS = ["v0.2.0", "v0.5.0", "v0.6.0"]
 
+STATISTICS_VARIABLE_NAME_FORMAT = "{var_name}__{split_name}__{op}"
+SOURCE_DATASET_NAME_ATTR = "source_dataset"
+
 
 def _check_dataset_attributes(ds, expected_attributes, dataset_name):
     # check that the dataset has the expected attributes with the expected values
@@ -236,7 +239,7 @@ def create_dataset(config: Config, ds_stats: Optional[xr.Dataset] = None):
                 f" produce variable {target_output_var} from dataset {dataset_name}"
             ) from ex
 
-        da_target.attrs["source_dataset"] = dataset_name
+        da_target.attrs[SOURCE_DATASET_NAME_ATTR] = dataset_name
 
         # only need to do selection for the coordinates that the input dataset actually has
         if output_coord_ranges is not None:
@@ -272,7 +275,6 @@ def create_dataset(config: Config, ds_stats: Optional[xr.Dataset] = None):
                 ds_split = ds.sel(
                     {splitting.dim: slice(split_config.start, split_config.end)}
                 )
-
                 if ds_stats is None:
                     logger.info(f"Computing statistics for split {split_name}")
                     split_stats = calc_stats(
@@ -282,7 +284,10 @@ def create_dataset(config: Config, ds_stats: Optional[xr.Dataset] = None):
                     )
                     for op, op_dataarrays in split_stats.items():
                         for var_name, da in op_dataarrays.items():
-                            ds[f"{var_name}__{split_name}__{op}"] = da
+                            stat_var_name = STATISTICS_VARIABLE_NAME_FORMAT.format(
+                                var_name=var_name, split_name=split_name, op=op
+                            )
+                            ds[stat_var_name] = da
 
         # add a new variable which contains the start, stop for each split, the coords would then be the split names
         # and the data would be the start, stop values
