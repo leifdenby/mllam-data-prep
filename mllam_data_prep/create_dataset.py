@@ -337,6 +337,11 @@ def create_dataset(config: Config, ds_stats: Optional[xr.Dataset] = None):
                     f"{output_name}_feature_units",
                 ]
                 for var_name in var_names:
+                    if var_name not in ds or var_name not in ds_stats:
+                        logger.info(
+                            f"Variable `{var_name}` not in both datasets, skipping"
+                        )
+                        continue
                     values_orig = ds[var_name].values
                     values_stats = ds_stats[var_name].values
                     if not np.array_equal(values_orig, values_stats):
