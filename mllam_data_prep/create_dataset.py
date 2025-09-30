@@ -326,6 +326,28 @@ def create_dataset(config: Config, ds_stats: Optional[xr.Dataset] = None):
                 f"values for some of the coordinates: {coord_values_different}"
             )
             raise ex
+        except xr.structure.merge.MergeError:
+            # this could be because the dataarrays have different values in the
+            # variables store feature long_name or units attributes. Check for this
+            # and if it is the case remove the attributes from the stats
+            # dataset and give the user a warning about the differences
+            for output_name in config.output.variables.keys():
+                var_names = [
+                    f"{output_name}_feature_long_name",
+                    f"{output_name}_feature_units",
+                ]
+                for var_name in var_names:
+                    values_orig = ds[var_name].values
+                    values_stats = ds_stats[var_name].values
+                    if not np.array_equal(values_orig, values_stats):
+                        logger.warning(
+                            f"The transformed dataset and provided statistics dataset cannot be merged because they have different "
+                            f"values for the variable `{var_name}`: {values_orig} != {values_stats}. "
+                            f"Removing the variable `{var_name}` from the statistics dataset and trying to merge again."
+                        )
+                        ds_stats = ds_stats.drop_vars(var_name)
+            # try merging again
+            ds = xr.merge([ds, ds_stats], join="exact")
 
     # We have to deal with the fact that MultiIndex objects (this would
     # commonly before example `grid_index` created by stacking the `x` and `y`
