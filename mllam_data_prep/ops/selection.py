@@ -100,7 +100,9 @@ def check_point_in_dataset(coord, point, ds):
     """
     check that the requested point is in the data.
     """
-    if point is not None and point not in ds[coord].values:
+    try:
+        ds.sel({coord: point})
+    except KeyError:
         raise ValueError(
             f"Provided value for coordinate {coord} ({point}) is not in the data."
         )
