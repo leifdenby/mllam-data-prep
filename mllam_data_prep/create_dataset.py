@@ -354,6 +354,11 @@ def create_dataset(config: Config, ds_stats: Optional[xr.Dataset] = None):
             # try merging again
             ds = xr.merge([ds, ds_stats], join="exact")
 
+        # set the same encoding for all variables, otherwise writing to zarr failed with zarr3
+        for var in ds.data_vars:
+            if var in ds_stats:
+                ds[var].encoding = {}
+
     # We have to deal with the fact that MultiIndex objects (this would
     # commonly before example `grid_index` created by stacking the `x` and `y`
     # coordinates) can't be written to netcdf/zarr. In cf_xarray this has been
