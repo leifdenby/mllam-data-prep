@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [unreleased](https://github.com/mllam/mllam-data-prep/compare/v0.7.0...HEAD)
+
+### Changed
+- consider full time information for derived calculation of TOA radiation [\#84](https://github.com/mllam/mllam-data-prep/pull/84) @observingClouds
+
+### Fixes
+- fix bug where coordinate selection of an unshared dimension isn't applied to subsequent ouput variables when an output variable without this dimension is processed before the others [\#90](https://github.com/mllam/mllam-data-prep/pull/90) @zweihuehner & @leifdenby
+
+## [v0.7.0](https://github.com/mllam/mllam-data-prep/release/tag/v0.7.0)
+
+[All changes](https://github.com/mllam/mllam-data-prep/compare/v0.7.0...v0.6.1)
+
+This release adds support for cropping a dataset using the convex hull of the lat/lon coordinates of another dataset, which can be used for creating boundary data in Limited Area Modelling setups.
+
+### Added
+
+- add support for cropping a dataset using the convex hull of the lat/lon coordinates of another dataset (can be used for creating boundary data in Limited Area Modelling setups) [\#45](https://github.com/mllam/mllam-data-prep/pull/45), @leifdenby
+
 ## [v0.6.1](https://github.com/mllam/mllam-data-prep/release/tag/v0.6.1)
 
 [All changes](https://github.com/mllam/mllam-data-prep/compare/v0.6.1...v0.6.0)
