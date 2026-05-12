@@ -2,6 +2,7 @@ import copy
 import tempfile
 from pathlib import Path
 
+import cf_xarray as cfxr
 import numpy as np
 import pytest
 
@@ -60,7 +61,21 @@ def test_create_convex_hull_mask():
     da_dist = cropping.distance_to_convex_hull_boundary(
         ds=ds_global, ds_reference=ds_lam
     )
-    da_dist_unstacked = da_dist.set_index(grid_index=["x", "y"]).unstack("grid_index")
+
+    # Ensure auxiliary coordinates that are mentioned in cf-xarray
+    # decoding/compression are present in the output dataset. Have to convert
+    # to a dataset first, because "x" and "y" won't follow along the
+    # "grid_index" coordinate, and we can't coordinates to a DataArray with new
+    # dimensions. (This can't be done in the
+    # cropping.distance_to_convex_hull_boundary function itself, because we
+    # want to return an DataArray from there)
+    ds_dist = da_dist.to_dataset(name="dist")
+    for coord in ds_global["grid_index"].attrs.get("compress").split():
+        ds_dist.coords[coord] = ds_global.coords[coord]
+
+    da_dist_unstacked = cfxr.decode_compress_to_multi_index(
+        ds_dist, idxnames="grid_index"
+    ).unstack("grid_index")["dist"]
 
     # check that the distance decreases towards the middle of the domain in
     # both x and y directions

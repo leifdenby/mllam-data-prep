@@ -62,8 +62,15 @@ def create_convex_hull_mask(ds: xr.Dataset, ds_reference: xr.Dataset) -> xr.Data
     chull_lam = SphericalPolygon.convex_hull(da_ref_xyz.values)
 
     # call .load() to avoid using dask arrays in the following apply_ufunc
+    # also copy the da_lon and da_lat to avoid modifying the original dataset
+    # (since the apply_ufunc appears to modify the input arrays in-place, which
+    # causes issues since this removed attributes on ds.grid_index, which
+    # describe the coordinate stacking)
     da_interior_mask = xr.apply_ufunc(
-        chull_lam.contains_lonlat, da_lon.load(), da_lat.load(), vectorize=True
+        chull_lam.contains_lonlat,
+        da_lon.copy().load(),
+        da_lat.copy().load(),
+        vectorize=True,
     ).astype(bool)
     da_interior_mask.attrs[
         "long_name"
